@@ -65,11 +65,20 @@ router.post('/checkout', protect, async (req, res, next) => {
       bookIds.push(book._id.toString());
     }
 
-    // 3. Resolve client success & cancel landing pages redirection URLs
+    // 3. Calculate cumulative total amount for auditing and validation checks
+    const totalAmount = dbItems.reduce((acc, curr) => acc + curr.price * curr.quantity, 0);
+
+    // 4. Resolve client success & cancel landing pages redirection URLs
     const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
 
-    // 4. Verify if a real Stripe credentials key is active
+    // 5. Verify if a real Stripe credentials key is active
     const isMock = !process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY.startsWith('sk_test_mock');
+
+    // Enforce Stripe's 50-cent minimum transaction requirement (approx. ₹45.00 INR) if running real Stripe mode
+    if (!isMock && totalAmount < 45) {
+      res.status(400);
+      throw new Error('Stripe requires a minimum transaction amount of ₹45.00 INR (approx. $0.50 USD) to process payments. Please add more books to your cart or purchase a higher-priced book.');
+    }
 
     let session;
     if (!isMock) {
@@ -97,9 +106,6 @@ router.post('/checkout', protect, async (req, res, next) => {
         }
       };
     }
-
-    // 5. Calculate cumulative total amount for local auditing
-    const totalAmount = dbItems.reduce((acc, curr) => acc + curr.price * curr.quantity, 0);
 
     // 6. Write a "pending" Order record to MongoDB Atlas prior to processing payment
     await Order.create({
