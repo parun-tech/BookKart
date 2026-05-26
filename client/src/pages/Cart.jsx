@@ -146,19 +146,28 @@ const Cart = () => {
               <span className="grand-total-price">₹{grandTotal.toFixed(2)}</span>
             </div>
 
+            {/* Minimum Stripe transaction warning */}
+            {grandTotal < 45 && (
+              <div className="stripe-min-warning">
+                ⚠️ Stripe requires a minimum checkout amount of <b>₹45.00 INR</b> (approx. $0.50 USD). Please increase the quantity or add more books to checkout.
+              </div>
+            )}
+
             {/* CHECKOUT TRIGGERS: Checks authentication rules dynamically */}
             {user ? (
               // A. Logged in customer -> Renders checkout triggers communicating with Stripe endpoints
               <button 
                 onClick={checkout} 
-                disabled={checkoutLoading}
-                className="glow-btn checkout-submit-btn"
+                disabled={checkoutLoading || grandTotal < 45}
+                className={`glow-btn checkout-submit-btn ${grandTotal < 45 ? 'btn-disabled' : ''}`}
               >
                 {checkoutLoading ? (
                   <>
                     <span className="loading-spinner-small"></span>
                     Redirecting to Stripe...
                   </>
+                ) : grandTotal < 45 ? (
+                  '⚠️ Minimum ₹45 Total Required'
                 ) : (
                   '🔒 Proceed to Secure Checkout'
                 )}
@@ -167,7 +176,7 @@ const Cart = () => {
               // B. Guest -> Prompts credentials registration logins fallbacks prior to checkouts
               <div className="checkout-login-fallback">
                 <p>Please log in to complete your checkout purchase.</p>
-                <Link to="/login" className="glow-btn" style={{ width: '100%' }}>
+                <Link to="/login" className="glow-btn" style={{ width: '100%' }} disabled={grandTotal < 45}>
                   Log In & Checkout
                 </Link>
               </div>
@@ -395,6 +404,28 @@ const Cart = () => {
           animation: spin 1s linear infinite;
           display: inline-block;
           margin-right: 8px;
+        }
+
+        .stripe-min-warning {
+          background: rgba(239, 83, 80, 0.08);
+          border: 1px solid rgba(239, 83, 80, 0.15);
+          color: #ff5252;
+          font-size: 0.8rem;
+          line-height: 1.45;
+          padding: 12px;
+          border-radius: 8px;
+          margin: 15px 0 10px 0;
+          text-align: left;
+        }
+
+        .btn-disabled {
+          background: rgba(255, 255, 255, 0.05) !important;
+          border: 1px solid rgba(255, 255, 255, 0.08) !important;
+          color: var(--text-muted) !important;
+          cursor: not-allowed !important;
+          box-shadow: none !important;
+          transform: none !important;
+          pointer-events: none;
         }
 
         @media (max-width: 1000px) {
